@@ -2,23 +2,18 @@ import numpy as np
 # This .py is a package to handle .vtk files in python without the need of ITK package
 # So far the following functions are implemented:
 # WritePython2Vtk: write .vtk files in python
-
+# ReadVtk2Python: Read .vtk file in python "it was created by WritePython2Vtk"
+#Created by Brahim Belaoucha on 2014/02/01
+#Copyright (c) Brahim Belaoucha. All right reserved
 def WritePython2Vtk(filename, vertices, faces, normal, scalar, name_of_scalar=None):
     #save the mesh into vtk ascii file
     #Syntax:
-    
     #[]=WritePython2Vtk(FILENAME, VERTICES, FACES, NORMAL,SCALAR,NAME_OF_SCALAR)
-    
     # Vertices (nbr of vertices * nbr of dimention)
     # Faces    (nbr of faces * 3)
     # Normals  (nbr of vertices * 3)
     # scalar   (nbr of vertices*1)
-    # name_of_scalar (string) 
-    
-    #Created by Brahim Belaoucha on 2014/02/01
-    #Copyright (c) Brahim Belaoucha. All right reserved
-
-
+    # name_of_scalar (string)
     if not name_of_scalar:
         name_of_scalar = 'Scalar'
     npoints, nbr_dimension=np.shape(vertices)
@@ -49,3 +44,52 @@ def WritePython2Vtk(filename, vertices, faces, normal, scalar, name_of_scalar=No
     for i in range(npoints):
         f.write(" "+str('%.4f' %normal[i,0])+' '+str('%.4f' %normal[i,1])+' '+str('%.4f' %normal[i,2]))
     f.close()
+def ReadVtk2Python(filename):
+    #Read vtk file and output
+    #Syntax:
+    #C,F,D,N=ReadVtk2Python(filename)
+    # C: coordinates (nbr of vertices * nbr of dimention)
+    # F: Faces    (nbr of faces * 3)
+    # D: Data     (nbr of vertices*1)
+    # Normals  (nbr of vertices * 3)
+
+    fo=open(filename,'rw+')
+    print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+    print "Vtk file is loaded: "+filename
+    with open(filename) as f:
+        mylist = f.read().splitlines()
+    print "Vtk version: "+ mylist[0]
+    File_name=mylist[1].split(" ")
+    print "File name: "+File_name[1]
+    print "Format: "+mylist[2]
+    Points=mylist[4].split(" ")
+    nbr_points=np.int32(Points[1])
+    print "Number of points/Vertices: "+str(nbr_points)
+    dim=len(mylist[5].split(" "))
+    print "Dimension: "+str(dim)
+    Coordinates=np.zeros((nbr_points,dim))
+    for i in range(5,nbr_points+5):
+        Coordinates[i-5,:]=np.float32(mylist[i].split(" "))
+    print "Coordinates were loaded, now edges"
+    Polygon_x=mylist[nbr_points+5].split(" ")
+    Polygon_x=np.int16(Polygon_x[-2])
+    print "Nbr of Faces: "+str(Polygon_x)
+    Faces=np.zeros((Polygon_x,3),dtype=int)
+    for i in range(nbr_points+6,nbr_points+6+Polygon_x):
+        F_i= mylist[i].split(" ")
+        Faces[i-nbr_points-6,:]=F_i[1:len(F_i)]
+        #pass
+    print "Data comment: "+mylist[nbr_points+8+Polygon_x]
+    Data=np.zeros(nbr_points)
+    for i in range(nbr_points+10+Polygon_x, 2*nbr_points+10+Polygon_x):
+        Data[i-(nbr_points+10+Polygon_x)] = np.float32(mylist[i])
+    Normal =[]
+    if 'NORMALS' in mylist[2*nbr_points+10+Polygon_x].split(" "):
+        print "Normal vector was found"
+        Normal=mylist[2*nbr_points+11+Polygon_x].split(" ")
+        NORMAL=[]
+        for i in range(len(Normal)):
+            if Normal[i] != '':
+                NORMAL.append(np.float32(Normal[i]))
+    print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+    return Coordinates,Faces,Data,NORMAL
